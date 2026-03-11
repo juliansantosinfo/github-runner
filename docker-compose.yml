@@ -1,0 +1,14 @@
+services:
+  github-runner:
+    image: juliansantosinfo/github-runner-linux-x64:2.332.0
+    environment:
+      - GITHUB_PAT=${GITHUB_PAT:-}
+      - GITHUB_REPO_OWNER=${GITHUB_REPO_OWNER:-juliansantosinfo}
+      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-TOTVS-Protheus-in-Docker}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - github-runner-data:/actions-runner
+    restart: always
+
+volumes:
+  github-runner-data:
