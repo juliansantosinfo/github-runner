@@ -1,14 +1,8 @@
 services:
   github-runner:
     image: juliansantosinfo/github-runner:${RUNNER_VERSION:-latest}
-    environment:
-      - GITHUB_PAT=${GITHUB_PAT:-}
-      - GITHUB_REPO_OWNER=${GITHUB_REPO_OWNER:-}
-      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-}
+    env_file:
+      - .env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - github-runner-data:/actions-runner
     restart: always
-
-volumes:
-  github-runner-data:
