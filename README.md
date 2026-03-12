@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 Runner auto-hospedado do GitHub Actions em um container Docker baseado em Ubuntu 22.04, com suporte ao Docker CLI e Docker Compose Plugin.
+Disponível para as plataformas **linux/amd64**, **linux/arm64** e **linux/arm/v7**.
 
 ---
 
@@ -96,13 +97,48 @@ docker run -d \
 
 ## 🔨 Build da Imagem
 
-Para construir a imagem localmente a partir do `Dockerfile`:
+### Build local (somente a arquitetura atual)
 
 ```bash
-docker build -t juliansantosinfo/github-runner-linux-x64:2.332.0 .
+docker build -t juliansantosinfo/github-runner:2.332.0 .
 ```
 
 Ou utilize a tarefa do VS Code: **`Terminal > Run Build Task`** (`Ctrl+Shift+B`).
+
+### Build multi-plataforma com Docker Buildx
+
+> Requer o Docker Buildx com suporte a emulação QEMU.
+
+**1. Configurar o ambiente (apenas uma vez):**
+
+```bash
+# Instalar emuladores QEMU para cross-arch
+docker run --privileged --rm tonistiigi/binfmt --install all
+
+# Criar e ativar um builder dedicado
+docker buildx create --name multiarch --use
+docker buildx inspect --bootstrap
+```
+
+**2. Build e push multi-arch:**
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64,linux/arm/v7 \
+  -t juliansantosinfo/github-runner:2.332.0 \
+  -t juliansantosinfo/github-runner:latest \
+  --push .
+```
+
+Alternativamente, use a tarefa **"Build & Push Multi-Arch Image"** disponível no VS Code (`Ctrl+Shift+B`).
+
+### Plataformas suportadas
+
+| Plataforma Docker | Arquitetura | Binário do Runner |
+|---|---|---|
+| `linux/amd64` | x86_64 | `actions-runner-linux-x64` |
+| `linux/arm64` | AArch64 | `actions-runner-linux-arm64` |
+| `linux/arm/v7` | ARMv7 | `actions-runner-linux-arm` |
 
 ---
 
@@ -165,12 +201,12 @@ jobs:
 
 ## 🐳 Imagem Docker
 
-| Propriedade   | Valor                                           |
-|---------------|-------------------------------------------------|
-| Base Image    | `ubuntu:22.04`                                  |
-| Runner Version| `2.332.0`                                       |
-| Arquitetura   | `linux/amd64`                                   |
-| Docker Hub    | `juliansantosinfo/github-runner-linux-x64`       |
+| Propriedade    | Valor                                      |
+|----------------|--------------------------------------------|
+| Base Image     | `ubuntu:22.04`                             |
+| Runner Version | `2.332.0`                                  |
+| Plataformas    | `linux/amd64`, `linux/arm64`, `linux/arm/v7` |
+| Docker Hub     | `juliansantosinfo/github-runner`           |
 
 ---
 
