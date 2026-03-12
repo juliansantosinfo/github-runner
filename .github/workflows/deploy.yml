@@ -5,7 +5,16 @@ on:
     branches:
       - main
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
+    paths-ignore:
+      - .vscode/**
+      - .env.example
+      - .gitignore
+      - docker-compose.yml
+      - DOCKERHUB.md
+      - LICENSE
+      - README.md
+      - run.sh
   workflow_dispatch:
 
 env:
