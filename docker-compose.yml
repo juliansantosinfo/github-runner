@@ -1,6 +1,6 @@
 services:
   github-runner:
-    image: juliansantosinfo/github-runner-linux-x64:2.332.0
+    image: juliansantosinfo/github-runner:2.332.0
     environment:
       - GITHUB_PAT=${GITHUB_PAT:-}
       - GITHUB_REPO_OWNER=${GITHUB_REPO_OWNER:-juliansantosinfo}

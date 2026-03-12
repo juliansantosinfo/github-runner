@@ -1,6 +1,7 @@
 #!/bin/bash
+set -e
 
-source .env
+source .env || true
 
 if [ -z "$GITHUB_REPO_NAME" ]; then
     read -p "Enter the repository name: " GITHUB_REPO_NAME
@@ -19,4 +20,4 @@ docker run -d --rm \
     -e GITHUB_PAT=$GITHUB_PAT \
     -e GITHUB_REPO_OWNER=$GITHUB_REPO_OWNER \
     -e GITHUB_REPO_NAME=$GITHUB_REPO_NAME \
-    juliansantosinfo/github-runner-linux-x64:2.332.0
+    juliansantosinfo/github-runner:2.332.0

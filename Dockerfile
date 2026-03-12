@@ -9,6 +9,9 @@ ENV GITHUB_REPO_NAME=
 
 ARG RUNNER_VERSION="2.332.0"
 
+# Injetado automaticamente pelo Docker Buildx: amd64, arm64 ou arm
+ARG TARGETARCH
+
 WORKDIR /actions-runner
 
 # 3. Instalação de dependências essenciais e repositório Docker em um único passo
@@ -24,8 +27,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     docker-ce-cli docker-buildx-plugin docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Download e extração do Runner do GitHub
-RUN curl -o runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
+# 4. Download e extração do Runner do GitHub (multi-arquitetura)
+# TARGETARCH (Docker) → RUNNER_ARCH (GitHub): amd64→x64, arm64→arm64, arm→arm
+RUN case "${TARGETARCH}" in \
+      amd64)  RUNNER_ARCH="x64" ;; \
+      arm64)  RUNNER_ARCH="arm64" ;; \
+      arm)    RUNNER_ARCH="arm" ;; \
+      *)      echo "Arquitetura não suportada: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -o runner.tar.gz -L \
+      "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" \
     && tar xzf ./runner.tar.gz \
     && rm ./runner.tar.gz \
     && ./bin/installdependencies.sh
