@@ -5,9 +5,15 @@ set -e
 # Configurações
 # ─────────────────────────────────────────────
 IMAGE_NAME="juliansantosinfo/github-runner"
-RUNNER_VERSION="2.332.0"
 PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7"
 BUILDER_NAME="multiarch"
+
+# Lê a versão do arquivo VERSION (fonte única de verdade)
+if [ ! -f VERSION ]; then
+  echo "[ERROR] Arquivo VERSION não encontrado na raiz do projeto." >&2
+  exit 1
+fi
+RUNNER_VERSION=$(cat VERSION | tr -d '[:space:]')
 
 # ─────────────────────────────────────────────
 # Funções auxiliares

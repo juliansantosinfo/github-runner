@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Lê a versão do arquivo VERSION (fonte única de verdade)
+RUNNER_VERSION=$(cat "$(dirname "$0")/VERSION" 2>/dev/null | tr -d '[:space:]') || {
+  echo "[ERROR] Arquivo VERSION não encontrado." >&2; exit 1
+}
+
 source .env || true
 
 if [ -z "$GITHUB_REPO_NAME" ]; then
@@ -20,4 +25,4 @@ docker run -d --rm \
     -e GITHUB_PAT=$GITHUB_PAT \
     -e GITHUB_REPO_OWNER=$GITHUB_REPO_OWNER \
     -e GITHUB_REPO_NAME=$GITHUB_REPO_NAME \
-    juliansantosinfo/github-runner:2.332.0
+    juliansantosinfo/github-runner:"${RUNNER_VERSION}"

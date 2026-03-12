@@ -7,7 +7,7 @@ ENV GITHUB_PAT=
 ENV GITHUB_REPO_OWNER=
 ENV GITHUB_REPO_NAME=
 
-ARG RUNNER_VERSION="2.332.0"
+ARG RUNNER_VERSION
 
 # Injetado automaticamente pelo Docker Buildx: amd64, arm64 ou arm
 ARG TARGETARCH
