@@ -25,4 +25,5 @@ docker run -d --rm \
     -e GITHUB_PAT=$GITHUB_PAT \
     -e GITHUB_REPO_OWNER=$GITHUB_REPO_OWNER \
     -e GITHUB_REPO_NAME=$GITHUB_REPO_NAME \
+    -v /var/run/docker.sock:/var/run/docker.sock \
     juliansantosinfo/github-runner:"${RUNNER_VERSION}"

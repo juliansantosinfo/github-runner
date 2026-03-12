@@ -16,6 +16,14 @@ if [ -z "$GITHUB_REPO_NAME" ]; then
   exit 1
 fi
 
+# Add user to docker group
+if [ ! -e /var/run/docker.sock ]; then
+  echo "Docker socket not found, skipping docker group addition"
+  exit 1
+fi
+sudo groupadd -g $(stat -c "%g" /var/run/docker.sock) docker-host
+sudo usermod -aG docker-host runner
+
 # API endpoint para token
 GITHUB_API_URL="https://api.github.com"
 GITHUB_TOKEN_URL="$GITHUB_API_URL/repos/$GITHUB_REPO_OWNER/$GITHUB_REPO_NAME/actions/runners/registration-token"
