@@ -4,16 +4,34 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Docker Image",
+            "label": "Build Local (amd64)",
             "type": "shell",
-            "command": "docker build -t juliansantosinfo/github-runner-linux-x64:2.332.0 .",
+            "command": "./build.sh local",
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
         },
         {
-            "label": "Run Docker Image",
+            "label": "Setup Buildx (QEMU + multiarch builder)",
+            "type": "shell",
+            "command": "./build.sh setup",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build & Push Multi-Arch (amd64 + arm64 + arm/v7)",
+            "type": "shell",
+            "command": "./build.sh multi",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Run Docker Container",
             "type": "shell",
             "command": "./run.sh",
             "group": {
@@ -22,12 +40,12 @@
             }
         },
         {
-            "label": "Stop Docker Image",
+            "label": "Stop Docker Container",
             "type": "shell",
             "command": "docker stop github-runner",
             "group": {
                 "kind": "test",
-                "isDefault": true
+                "isDefault": false
             }
         }
     ]
