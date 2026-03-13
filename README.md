@@ -1,15 +1,22 @@
-# GitHub Runner Linux x64
+# GitHub Runner Multi-Arch
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Build & Push](https://github.com/juliansantosinfo/github-runner/actions/workflows/deploy.yml/badge.svg)](https://github.com/juliansantosinfo/github-runner/actions/workflows/deploy.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/juliansantosinfo/github-runner.svg)](https://hub.docker.com/r/juliansantosinfo/github-runner)
 
-Runner auto-hospedado do GitHub Actions em um container Docker baseado em Ubuntu 22.04, com suporte ao Docker CLI e Docker Compose Plugin.
-Disponível para as plataformas **linux/amd64**, **linux/arm64** e **linux/arm/v7**.
+Runner auto-hospedado do GitHub Actions em um container Docker baseado em **Ubuntu 22.04**, totalmente equipado com **Docker CLI** e **Docker Compose Plugin**.
+
+🚀 Suporte nativo para **multi-plataforma**: `linux/amd64`, `linux/arm64` (Apple Silicon, AWS Graviton) e `linux/arm/v7` (Raspberry Pi 3/4).
 
 ---
 
 ## 📋 Visão Geral
 
-Este projeto empacota o [GitHub Actions Runner](https://github.com/actions/runner) em uma imagem Docker. Ao iniciar o container, ele se registra automaticamente em um repositório do GitHub usando um PAT (Personal Access Token) e, ao ser encerrado, remove o registro do runner de forma segura.
+Este projeto fornece uma solução robusta e automatizada para executar runners do GitHub Actions em containers Docker. Ele gerencia o ciclo de vida completo do runner:
+- **Auto-registro:** Registra-se dinamicamente no repositório usando um PAT (Personal Access Token).
+- **Auto-remoção:** Desregistra-se de forma segura ao encerrar o container (SIGTERM/SIGINT).
+- **Persistência:** Mantém o estado do runner entre reinicializações através de volumes.
+- **Docker-in-Docker (Lite):** Permite executar comandos Docker e Docker Compose dentro dos workflows através do compartilhamento do socket.
 
 ## 🧰 Pré-requisitos
 
@@ -21,40 +28,34 @@ Este projeto empacota o [GitHub Actions Runner](https://github.com/actions/runne
 
 ## 📁 Estrutura do Projeto
 
-```
+```text
 github-runner/
-├── .env                  # Variáveis de ambiente (não versionar)
-├── .env.example          # Modelo de variáveis de ambiente
-├── .gitignore
-├── .vscode/
-│   ├── extensions.json   # Extensões recomendadas para VS Code
-│   └── tasks.json        # Tarefas de build e execução para VS Code
-├── Dockerfile            # Definição da imagem Docker
-├── docker-compose.yml    # Orquestração do container
-├── LICENSE               # Licença MIT
-├── run.sh                # Script para executar o container via `docker run`
-├── start.sh              # Entrypoint: registra e inicializa o runner
-└── remove.sh             # Script para remover o runner manualmente
+├── .github/workflows/    # Automação de CI/CD (Build & Push Multi-Arch)
+├── .vscode/              # Configurações de workspace e tarefas
+├── Dockerfile            # Definição multi-estágio da imagem
+├── VERSION               # Fonte única de verdade para a versão do runner
+├── build.sh              # Script unificado para builds locais e multi-arch
+├── docker-compose.yml    # Método de execução recomendado
+├── run.sh                # Script auxiliar para execução rápida via Docker CLI
+├── start.sh              # Entrypoint (lógica de registro e inicialização)
+├── remove.sh             # Script interno para cleanup seguro
+└── .env.example          # Modelo de configuração de ambiente
 ```
 
 ---
 
-## ⚙️ Configuração
+## ⚙️ Configuração Rápida
 
-### 1. Variáveis de Ambiente
-
-Copie o arquivo de exemplo e preencha com os seus valores:
-
+### 1. Preparar Ambiente
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` gerado:
-
+Edite o `.env` com suas credenciais:
 ```env
-GITHUB_REPO_NAME=<nome-do-repositório>
-GITHUB_REPO_OWNER=<usuário-ou-organização>
-GITHUB_PAT=<seu-personal-access-token>
+GITHUB_REPO_NAME="meu-repo"
+GITHUB_REPO_OWNER="meu-usuario"
+GITHUB_PAT="seu_personal_access_token_aqui"
 ```
 
 > **Atenção:** Nunca suba o arquivo `.env` para o repositório. Ele já está listado no `.gitignore`. Somente o `.env.example` deve ser versionado.
@@ -95,17 +96,25 @@ docker run -d \
 
 ---
 
-## 🔨 Build da Imagem
+## 🔨 Processo de Build
 
-### Build local (somente a arquitetura atual)
+Agora utilizamos um script unificado `build.sh` para simplificar o desenvolvimento e a publicação.
 
+### Setup (Apenas uma vez)
+Prepara o ambiente Docker Buildx e emuladores QEMU:
 ```bash
-docker build -t juliansantosinfo/github-runner:2.332.0 .
+./build.sh setup
 ```
 
-Ou utilize a tarefa do VS Code: **`Terminal > Run Build Task`** (`Ctrl+Shift+B`).
+### Build Local
+Gera a imagem apenas para a arquitetura da sua máquina (rápido):
+```bash
+./build.sh local
+```
 
-### Build multi-plataforma com Docker Buildx
+### Build & Push Multi-Arch
+
+Gera as imagens para as 3 plataformas suportadas e envia para o Docker Hub:
 
 > Requer o Docker Buildx com suporte a emulação QEMU.
 
@@ -121,6 +130,14 @@ docker buildx inspect --bootstrap
 ```
 
 **2. Build e push multi-arch:**
+
+Utilizando o script `build.sh`:
+
+```bash
+./build.sh multi
+```
+
+Ou diretamente com o Docker Buildx:
 
 ```bash
 docker buildx build \
@@ -140,11 +157,18 @@ Alternativamente, use a tarefa **"Build & Push Multi-Arch Image"** disponível n
 | `linux/arm64` | AArch64 | `actions-runner-linux-arm64` |
 | `linux/arm/v7` | ARMv7 | `actions-runner-linux-arm` |
 
+## 🤖 Automação CI/CD
+
+O projeto conta com um workflow de GitHub Actions (`deploy.yml`) que automatiza totalmente o processo:
+- **Trigger:** Disparado em `push` na branch `main` ou criação de `tags` (ex: `v2.332.0`).
+- **Processo:** Constrói builds paralelos para cada arquitetura, gera artefatos de digest e cria o manifesto multi-arch final no Docker Hub.
+- **Cache:** Utiliza cache nativo do GitHub Actions para reduzir o tempo de build.
+
 ---
 
 ## 🗑️ Remoção do Runner
 
-O runner é removido automaticamente do GitHub quando o container é encerrado (via signal `SIGTERM` ou `SIGINT`).
+O runner é removido automaticamente do GitHub quando o container é encerrado (via signal `SIGTERM` ou `SIGINT`). Caso precise remover manualmente ou via `docker exec`:
 
 ### Remoção Manual
 
@@ -199,14 +223,16 @@ jobs:
 
 ---
 
-## 🐳 Imagem Docker
+## 🐳 Detalhes da Imagem
 
-| Propriedade    | Valor                                      |
-|----------------|--------------------------------------------|
-| Base Image     | `ubuntu:22.04`                             |
-| Runner Version | `2.332.0`                                  |
-| Plataformas    | `linux/amd64`, `linux/arm64`, `linux/arm/v7` |
-| Docker Hub     | `juliansantosinfo/github-runner`           |
+| Atributo | Valor |
+| :--- | :--- |
+| **Imagem Base** | `ubuntu:22.04` |
+| **Versão do Runner** | `2.332.0` (configurado via `VERSION`) |
+| **Plataformas** | `amd64`, `arm64`, `arm/v7` |
+| **Docker CLI** | ✅ Incluído |
+| **Docker Compose** | ✅ Incluído (Plugin v2+) |
+| **Docker Hub** | [juliansantosinfo/github-runner](https://hub.docker.com/r/juliansantosinfo/github-runner) |
 
 ---
 

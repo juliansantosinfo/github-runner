@@ -40,13 +40,19 @@ GITHUB_RUNNER_NAME="docker-runner-$(hostname)-$(date +%s)"
 
 # Diretório de trabalho
 WORK_DIR="_work"
-sudo chown -R runner:runner "$WORK_DIR"
 
 # Se GITHUB_CUSTOM_WORK_PATH for true, cria um diretório de trabalho com o nome do runner
 if [ "$GITHUB_CUSTOM_WORK_PATH" = true ]; then
   echo "Using work directory with container name"
   WORK_DIR="_work/$GITHUB_RUNNER_NAME"
 fi
+
+if [ ! -d "$WORK_DIR" ]; then
+  sudo mkdir -p "$WORK_DIR"
+fi
+
+# Change ownership of work directory
+sudo chown -R runner:runner "$WORK_DIR"
 
 # Function to setup new runner
 runnerSetup() {
