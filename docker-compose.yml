@@ -9,4 +9,8 @@ services:
     #   - GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - github-runner-data:/actions-runner/_work
     restart: always
+
+volumes:
+  github-runner-data:

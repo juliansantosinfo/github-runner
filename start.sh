@@ -16,13 +16,17 @@ if [ -z "$GITHUB_REPO_NAME" ]; then
   exit 1
 fi
 
-# Add user to docker group
+# Check if docker socket exists
 if [ ! -e /var/run/docker.sock ]; then
   echo "Docker socket not found, skipping docker group addition"
   exit 1
 fi
-sudo groupadd -g $(stat -c "%g" /var/run/docker.sock) docker-host
-sudo usermod -aG docker-host runner
+
+# Add user to docker group
+if ! getent group docker-host > /dev/null 2>&1; then
+    sudo groupadd -g $(stat -c "%g" /var/run/docker.sock) docker-host
+    sudo usermod -aG docker-host runner
+fi
 
 # API endpoint para token
 GITHUB_API_URL="https://api.github.com"
@@ -31,26 +35,38 @@ GITHUB_TOKEN_URL="$GITHUB_API_URL/repos/$GITHUB_REPO_OWNER/$GITHUB_REPO_NAME/act
 # URL do repositório (usado pelo config.sh)
 GITHUB_REPO_URL="https://github.com/$GITHUB_REPO_OWNER/$GITHUB_REPO_NAME"
 
+# Nome do runner
+GITHUB_RUNNER_NAME="docker-runner-$(hostname)-$(date +%s)"
+
+# Diretório de trabalho
+WORK_DIR="_work"
+sudo chown -R runner:runner "$WORK_DIR"
+
+# Se GITHUB_CUSTOM_WORK_PATH for true, cria um diretório de trabalho com o nome do runner
+if [ "$GITHUB_CUSTOM_WORK_PATH" = true ]; then
+  echo "Using work directory with container name"
+  WORK_DIR="_work/$GITHUB_RUNNER_NAME"
+fi
+
 # Function to setup new runner
 runnerSetup() {
 
   echo "Runner not found, setting up new runner..."
 
-  GITHUB_RUNNER_NAME="docker-runner-$(hostname)-$(date +%s)"
-
   echo "Requesting runner token..."
 
   TOKEN=$(curl -s -X POST \
     -H "Authorization: token ${GITHUB_PAT}" \
-  -H "Accept: application/vnd.github+json" \
-  "${GITHUB_TOKEN_URL}" \
-  | jq -r .token)
+    -H "Accept: application/vnd.github+json" \
+    "${GITHUB_TOKEN_URL}" \
+    | jq -r .token)
 
   if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
     echo "ERROR: Failed to obtain runner token"
     exit 1
   else
-    echo "$TOKEN" > .token
+    echo "$TOKEN" > "$WORK_DIR"/.token
+    echo "$GITHUB_RUNNER_NAME" > "$WORK_DIR"/.runner-name
   fi
 
   echo "Configuring runner..."
@@ -60,35 +76,9 @@ runnerSetup() {
   --token "${TOKEN}" \
   --name "${GITHUB_RUNNER_NAME}" \
   --labels docker,linux \
-  --work _work \
+  --work "${WORK_DIR}" \
   --unattended \
   --replace
-
-  cat << 'EOF' > script.sh
-#!/bin/bash
-
-# Interrompe a execução em caso de erro
-set -e
-
-# Verifica se a variável de ambiente necessária existe
-if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Erro: A variável RUNNER_TOKEN não está definida." >&2
-    exit 1
-fi
-
-echo "Iniciando a remoção do runner..."
-
-# Executa a remoção de forma não interativa
-if ./config.sh remove --token "$RUNNER_TOKEN"; then
-    echo "Runner removido com sucesso."
-else
-    echo "Falha ao remover o runner." >&2
-    exit 1
-fi
-EOF
-
-  # Garante que o arquivo tenha permissão de execução
-  chmod +x script.sh
 
   echo "Runner configured successfully"
   echo ""
@@ -107,6 +97,8 @@ cleanup() {
 
   if [ -n "$REMOVE_TOKEN" ] && [ "$REMOVE_TOKEN" != "null" ]; then
     ./config.sh remove --token "$REMOVE_TOKEN"
+    rm -rf "$WORK_DIR"
+    echo "Work directory removed successfully."
   fi
 
   echo "Runner removed"
