@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 
 # 2. Configurações de ambiente e argumentos para facilitar manutenção
 ENV DEBIAN_FRONTEND=noninteractive
+ENV RUNNER_ALLOW_RUNASROOT=1
 ENV GITHUB_PAT=
 ENV GITHUB_REPO_OWNER=
 ENV GITHUB_REPO_NAME=
@@ -14,7 +15,7 @@ ARG TARGETARCH
 
 WORKDIR /actions-runner
 
-# 3. Instalação de dependências essenciais e repositório Docker em um único passo
+# 1. Instalação de dependências essenciais e repositório Docker em um único passo
 # Isso reduz o número de camadas e o tamanho final da imagem
 # hadolint ignore=DL3008,DL4006
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	docker-ce-cli docker-buildx-plugin docker-compose-plugin \
 	&& rm -rf /var/lib/apt/lists/*
 
-# 4. Download e extração do Runner do GitHub (multi-arquitetura)
+# 2. Download e extração do Runner do GitHub (multi-arquitetura)
 # TARGETARCH (Docker) → RUNNER_ARCH (GitHub): amd64→x64, arm64→arm64, arm→arm
 RUN case "${TARGETARCH}" in \
 	amd64)  RUNNER_ARCH="x64" ;; \
@@ -41,19 +42,17 @@ RUN case "${TARGETARCH}" in \
 	&& rm ./runner.tar.gz \
 	&& ./bin/installdependencies.sh
 
-# 5. Configuração do usuário e permissões (Segurança)
+# 3. Configuração do usuário e permissões (Segurança)
 RUN useradd -m runner && \
 	groupadd docker || true && \
 	usermod -aG sudo,docker runner && \
 	echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
 	chown -R runner:runner /actions-runner
 
-# 6. Preparação do script de entrada
+# 4. Preparação do script de entrada
 COPY --chown=runner:runner start.sh ./start.sh
 COPY --chown=runner:runner remove.sh ./remove.sh
 RUN chown -R runner:runner /actions-runner && \
 	chmod +x ./start.sh ./remove.sh
-
-USER runner
 
 ENTRYPOINT ["./start.sh"]
